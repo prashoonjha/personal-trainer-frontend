@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
+import { Button } from '@mui/material'; // NEW
 
 const API_BASE_URL =
   'https://customer-rest-service-frontend-personaltrainer.2.rahtiapp.fi/api';
@@ -143,6 +144,36 @@ function TrainingsPage() {
     return 0;
   });
 
+
+  async function handleDeleteTraining(training: Training) {
+    const formattedDate = dayjs(training.date).format('DD.MM.YYYY HH:mm');
+    const customerName = `${training.customer.firstname} ${training.customer.lastname}`;
+
+    const ok = window.confirm(
+      `Delete training "${training.activity}" on ${formattedDate} for ${customerName}?`
+    );
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/trainings/${training.id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        
+        const refreshed = await fetch(`${API_BASE_URL}/gettrainings`);
+        const data: Training[] = await refreshed.json();
+        setTrainings(data);
+        setFiltered(data);
+      } else {
+        alert(`Failed to delete training (status ${res.status}).`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting training.');
+    }
+  }
+
   return (
     <div>
       <h1>Trainings</h1>
@@ -189,6 +220,7 @@ function TrainingsPage() {
                 Customer {sortIndicator('customerName')}
               </th>
               <th>City</th>
+              <th>Actions</th> 
             </tr>
           </thead>
           <tbody>
@@ -202,6 +234,16 @@ function TrainingsPage() {
                   <td>{t.duration}</td>
                   <td>{name}</td>
                   <td>{t.customer.city}</td>
+                  <td>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      color="error"
+                      onClick={() => handleDeleteTraining(t)}
+                    >
+                      Delete
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
