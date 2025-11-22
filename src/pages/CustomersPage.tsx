@@ -173,7 +173,39 @@ function CustomersPage() {
       alert("Error updating customer.");
     }
   }
+async function handleDeleteCustomer(customer: Customer) {
+    const url = customer._links?.customer?.href;
+    if (!url) {
+      alert('Missing customer URL');
+      return;
+    }
 
+    const fullName = `${customer.firstname} ${customer.lastname}`;
+    const ok = window.confirm(
+      `Delete customer "${fullName}" and ALL their trainings?`
+    );
+    if (!ok) return;
+
+    try {
+      const res = await fetch(url, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        // reload list after delete
+        const refreshed = await fetch(`${API_BASE_URL}/customers`);
+        const data: CustomersResponse = await refreshed.json();
+        const list = data._embedded?.customers ?? [];
+        setCustomers(list);
+        setFilteredCustomers(list);
+      } else {
+        alert('Failed to delete customer.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting customer.');
+    }
+  }
 
   // Search/filter
   useEffect(() => {
@@ -462,6 +494,14 @@ function CustomersPage() {
                     onClick={() => openEditDialog(c)}
                   >
                     Edit
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="error"
+                    onClick={() => handleDeleteCustomer(c)}
+                  >
+                    Delete
                   </Button>
                 </td>
               </tr>
