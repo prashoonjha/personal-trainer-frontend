@@ -295,6 +295,64 @@ async function handleDeleteCustomer(customer: Customer) {
     }
   }
 
+    // ---- CSV EXPORT ----
+  function toCsvValue(value: unknown): string {
+    const str = value === null || value === undefined ? '' : String(value);
+    
+    const escaped = str.replace(/"/g, '""');
+    return `"${escaped}"`;
+  }
+
+  function handleExportCsv() {
+    if (customers.length === 0) {
+      alert('No customers to export.');
+      return;
+    }
+
+
+    const headers = [
+      'firstname',
+      'lastname',
+      'email',
+      'phone',
+      'streetaddress',
+      'postcode',
+      'city',
+    ];
+
+    const rows = customers.map((c) => [
+      c.firstname,
+      c.lastname,
+      c.email,
+      c.phone,
+      c.streetaddress,
+      c.postcode,
+      c.city,
+    ]);
+
+    const csvLines = [
+      headers.map(toCsvValue).join(','), 
+      ...rows.map((row) => row.map(toCsvValue).join(',')),
+    ];
+
+    const csvContent = csvLines.join('\r\n');
+
+    const blob = new Blob([csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    });
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'customers.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+  
+
+
   // Search/filter
   useEffect(() => {
     const term = searchText.trim().toLowerCase();
@@ -354,19 +412,23 @@ async function handleDeleteCustomer(customer: Customer) {
     return 0;
   });
 
-  return (
+    return (
     <div>
       <h1>Customers</h1>
 
-      {/* Add Customer button */}
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => setOpenAdd(true)}
-        style={{ marginBottom: '1rem' }}
-      >
-        Add Customer
-      </Button>
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setOpenAdd(true)}
+        >
+          Add Customer
+        </Button>
+
+        <Button variant="outlined" color="primary" onClick={handleExportCsv}>
+          Export CSV
+        </Button>
+      </div>
 
       {/* Add Customer dialog */}
       <Dialog open={openAdd} onClose={() => setOpenAdd(false)}>
