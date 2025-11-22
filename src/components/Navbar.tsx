@@ -25,6 +25,15 @@ function Navbar() {
           >
             Trainings
           </NavLink>
+
+          <NavLink
+            to="/calendar"
+            className={({ isActive }) =>
+              isActive ? 'navbar-link navbar-link-active' : 'navbar-link'
+            }
+          >
+            Calendar
+          </NavLink>
         </nav>
       </div>
     </header>
