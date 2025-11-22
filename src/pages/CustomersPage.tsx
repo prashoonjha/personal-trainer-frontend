@@ -63,6 +63,14 @@ function CustomersPage() {
     postcode: '',
     city: '',
   });
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
+
+
+  function openEditDialog(customer: Customer) {
+    setEditCustomer(customer);
+    setOpenEdit(true);
+  }
 
   // Fetch customers
   useEffect(() => {
@@ -131,6 +139,41 @@ function CustomersPage() {
       alert('Error while adding customer.');
     }
   }
+  async function handleEditCustomer() {
+    if (!editCustomer) return;
+
+    const url = editCustomer._links?.customer?.href;
+    if (!url) {
+      alert("Missing customer URL");
+      return;
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editCustomer),
+      });
+
+      if (res.ok) {
+        setOpenEdit(false);
+
+        // Reload list
+        const refreshed = await fetch(`${API_BASE_URL}/customers`);
+        const data: CustomersResponse = await refreshed.json();
+        const list = data._embedded?.customers ?? [];
+
+        setCustomers(list);
+        setFilteredCustomers(list);
+      } else {
+        alert("Failed to update customer.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating customer.");
+    }
+  }
+
 
   // Search/filter
   useEffect(() => {
@@ -277,6 +320,77 @@ function CustomersPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      <Dialog open={openEdit} onClose={() => setOpenEdit(false)}>
+        <DialogTitle>Edit Customer</DialogTitle>
+        <DialogContent
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            marginTop: '1rem',
+          }}
+        >
+          <TextField
+            label="First Name"
+            value={editCustomer?.firstname ?? ""}
+            onChange={(e) =>
+              setEditCustomer({ ...editCustomer!, firstname: e.target.value })
+            }
+          />
+          <TextField
+            label="Last Name"
+            value={editCustomer?.lastname ?? ""}
+            onChange={(e) =>
+              setEditCustomer({ ...editCustomer!, lastname: e.target.value })
+            }
+          />
+          <TextField
+            label="Email"
+            value={editCustomer?.email ?? ""}
+            onChange={(e) =>
+              setEditCustomer({ ...editCustomer!, email: e.target.value })
+            }
+          />
+          <TextField
+            label="Phone"
+            value={editCustomer?.phone ?? ""}
+            onChange={(e) =>
+              setEditCustomer({ ...editCustomer!, phone: e.target.value })
+            }
+          />
+          <TextField
+            label="Street Address"
+            value={editCustomer?.streetaddress ?? ""}
+            onChange={(e) =>
+              setEditCustomer({
+                ...editCustomer!,
+                streetaddress: e.target.value,
+              })
+            }
+          />
+          <TextField
+            label="Postcode"
+            value={editCustomer?.postcode ?? ""}
+            onChange={(e) =>
+              setEditCustomer({ ...editCustomer!, postcode: e.target.value })
+            }
+          />
+          <TextField
+            label="City"
+            value={editCustomer?.city ?? ""}
+            onChange={(e) =>
+              setEditCustomer({ ...editCustomer!, city: e.target.value })
+            }
+          />
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setOpenEdit(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleEditCustomer}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <div className="search-bar">
         <label>Search:</label>
@@ -328,6 +442,7 @@ function CustomersPage() {
               <th onClick={() => handleSort('city')}>
                 City {sortIndicator('city')}
               </th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -340,6 +455,15 @@ function CustomersPage() {
                 <td>{c.streetaddress}</td>
                 <td>{c.postcode}</td>
                 <td>{c.city}</td>
+                <td>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => openEditDialog(c)}
+                  >
+                    Edit
+                  </Button>
+                </td>
               </tr>
             ))}
           </tbody>
