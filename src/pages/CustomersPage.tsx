@@ -8,6 +8,11 @@ import {
 } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 
+import dayjs, { Dayjs } from 'dayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+
 const API_BASE_URL =
   'https://customer-rest-service-frontend-personaltrainer.2.rahtiapp.fi/api';
 
@@ -41,6 +46,12 @@ interface SortConfig {
   direction: SortDirection;
 }
 
+interface TrainingForm {
+  date: Dayjs | null;
+  activity: string;
+  duration: string; 
+}
+
 function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
@@ -66,10 +77,29 @@ function CustomersPage() {
   const [openEdit, setOpenEdit] = useState(false);
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
 
+    // Add training dialog state
+  const [openTraining, setOpenTraining] = useState(false);
+  const [trainingTarget, setTrainingTarget] = useState<Customer | null>(null);
+  const [newTraining, setNewTraining] = useState<TrainingForm>({
+    date: dayjs(),
+    activity: '',
+    duration: '',
+  });
+
 
   function openEditDialog(customer: Customer) {
     setEditCustomer(customer);
     setOpenEdit(true);
+  }
+
+    function openAddTrainingDialog(customer: Customer) {
+    setTrainingTarget(customer);
+    setNewTraining({
+      date: dayjs(),
+      activity: '',
+      duration: '',
+    });
+    setOpenTraining(true);
   }
 
   // Fetch customers
@@ -173,6 +203,64 @@ function CustomersPage() {
       alert("Error updating customer.");
     }
   }
+
+  async function handleAddTraining() {
+    if (!trainingTarget) {
+      alert('Missing customer for training');
+      return;
+    }
+
+    if (!newTraining.date) {
+      alert('Please choose a date and time');
+      return;
+    }
+
+    const durationNumber = Number(newTraining.duration);
+    if (!durationNumber || durationNumber <= 0) {
+      alert('Please enter a valid duration (minutes)');
+      return;
+    }
+
+    const customerUrl = trainingTarget._links?.self?.href;
+    if (!customerUrl) {
+      alert('Missing customer link');
+      return;
+    }
+
+    const payload = {
+      date: newTraining.date.toISOString(), // ISO string
+      activity: newTraining.activity,
+      duration: durationNumber,
+      customer: customerUrl,
+    };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/trainings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setOpenTraining(false);
+
+      
+        setNewTraining({
+          date: dayjs(),
+          activity: '',
+          duration: '',
+        });
+      } else {
+        alert(`Failed to add training (status ${res.status})`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error while adding training.');
+    }
+  }
+
+
+
 async function handleDeleteCustomer(customer: Customer) {
     const url = customer._links?.customer?.href;
     if (!url) {
@@ -424,6 +512,68 @@ async function handleDeleteCustomer(customer: Customer) {
         </DialogActions>
       </Dialog>
 
+            <Dialog
+        open={openTraining}
+        onClose={() => setOpenTraining(false)}
+      >
+        <DialogTitle>
+          {trainingTarget
+            ? `Add training for ${trainingTarget.firstname} ${trainingTarget.lastname}`
+            : 'Add training'}
+        </DialogTitle>
+
+        <DialogContent
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            marginTop: '1rem',
+          }}
+        >
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DateTimePicker
+              label="Date & time"
+              value={newTraining.date}
+              onChange={(value) =>
+                setNewTraining((prev) => ({ ...prev, date: value }))
+              }
+            />
+          </LocalizationProvider>
+
+          <TextField
+            label="Activity"
+            value={newTraining.activity}
+            onChange={(e) =>
+              setNewTraining((prev) => ({
+                ...prev,
+                activity: e.target.value,
+              }))
+            }
+          />
+
+          <TextField
+            label="Duration (minutes)"
+            type="number"
+            inputProps={{ min: 1 }}
+            value={newTraining.duration}
+            onChange={(e) =>
+              setNewTraining((prev) => ({
+                ...prev,
+                duration: e.target.value,
+              }))
+            }
+          />
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setOpenTraining(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAddTraining}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
       <div className="search-bar">
         <label>Search:</label>
         <input
@@ -488,22 +638,34 @@ async function handleDeleteCustomer(customer: Customer) {
                 <td>{c.postcode}</td>
                 <td>{c.city}</td>
                 <td>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => openEditDialog(c)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    color="error"
-                    onClick={() => handleDeleteCustomer(c)}
-                  >
-                    Delete
-                  </Button>
-                </td>
+  <Button
+    variant="outlined"
+    size="small"
+    onClick={() => openEditDialog(c)}
+    style={{ marginRight: '0.5rem' }}
+  >
+    Edit
+  </Button>
+
+  <Button
+    variant="outlined"
+    size="small"
+    onClick={() => openAddTrainingDialog(c)}
+    style={{ marginRight: '0.5rem' }}
+  >
+    Add Training
+  </Button>
+
+  <Button
+    variant="outlined"
+    size="small"
+    color="error"
+    onClick={() => handleDeleteCustomer(c)}
+  >
+    Delete
+  </Button>
+</td>
+
               </tr>
             ))}
           </tbody>
