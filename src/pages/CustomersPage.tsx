@@ -1,3 +1,11 @@
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField
+} from '@mui/material';
 import React, { useEffect, useState } from 'react';
 
 const API_BASE_URL =
@@ -44,6 +52,18 @@ function CustomersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Add customer dialog state
+  const [openAdd, setOpenAdd] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    firstname: '',
+    lastname: '',
+    email: '',
+    phone: '',
+    streetaddress: '',
+    postcode: '',
+    city: '',
+  });
+
   // Fetch customers
   useEffect(() => {
     async function load() {
@@ -71,6 +91,46 @@ function CustomersPage() {
 
     load();
   }, []);
+
+  // Add customer handler
+  async function handleAddCustomer() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/customers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCustomer),
+      });
+
+      if (response.ok) {
+        // Close dialog
+        setOpenAdd(false);
+
+        // Reload customers from API
+        const res = await fetch(`${API_BASE_URL}/customers`);
+        const data: CustomersResponse = await res.json();
+        const list = data._embedded?.customers ?? [];
+
+        setCustomers(list);
+        setFilteredCustomers(list);
+
+        // Reset form
+        setNewCustomer({
+          firstname: '',
+          lastname: '',
+          email: '',
+          phone: '',
+          streetaddress: '',
+          postcode: '',
+          city: '',
+        });
+      } else {
+        alert('Failed to add customer.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error while adding customer.');
+    }
+  }
 
   // Search/filter
   useEffect(() => {
@@ -134,6 +194,89 @@ function CustomersPage() {
   return (
     <div>
       <h1>Customers</h1>
+
+      {/* Add Customer button */}
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => setOpenAdd(true)}
+        style={{ marginBottom: '1rem' }}
+      >
+        Add Customer
+      </Button>
+
+      {/* Add Customer dialog */}
+      <Dialog open={openAdd} onClose={() => setOpenAdd(false)}>
+        <DialogTitle>Add Customer</DialogTitle>
+        <DialogContent
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            marginTop: '1rem',
+          }}
+        >
+          <TextField
+            label="First Name"
+            value={newCustomer.firstname}
+            onChange={(e) =>
+              setNewCustomer({ ...newCustomer, firstname: e.target.value })
+            }
+          />
+          <TextField
+            label="Last Name"
+            value={newCustomer.lastname}
+            onChange={(e) =>
+              setNewCustomer({ ...newCustomer, lastname: e.target.value })
+            }
+          />
+          <TextField
+            label="Email"
+            value={newCustomer.email}
+            onChange={(e) =>
+              setNewCustomer({ ...newCustomer, email: e.target.value })
+            }
+          />
+          <TextField
+            label="Phone"
+            value={newCustomer.phone}
+            onChange={(e) =>
+              setNewCustomer({ ...newCustomer, phone: e.target.value })
+            }
+          />
+          <TextField
+            label="Street Address"
+            value={newCustomer.streetaddress}
+            onChange={(e) =>
+              setNewCustomer({
+                ...newCustomer,
+                streetaddress: e.target.value,
+              })
+            }
+          />
+          <TextField
+            label="Postcode"
+            value={newCustomer.postcode}
+            onChange={(e) =>
+              setNewCustomer({ ...newCustomer, postcode: e.target.value })
+            }
+          />
+          <TextField
+            label="City"
+            value={newCustomer.city}
+            onChange={(e) =>
+              setNewCustomer({ ...newCustomer, city: e.target.value })
+            }
+          />
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setOpenAdd(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAddCustomer}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <div className="search-bar">
         <label>Search:</label>
