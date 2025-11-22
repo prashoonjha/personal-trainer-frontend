@@ -4,6 +4,8 @@ import Navbar from './components/Navbar';
 import CustomersPage from './pages/CustomersPage';
 import TrainingsPage from './pages/TrainingsPage';
 import CalendarPage from './pages/CalendarPage';
+import StatsPage from './pages/StatsPage';
+
 
 
 function App() {
@@ -17,6 +19,8 @@ function App() {
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/trainings" element={<TrainingsPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/stats" element={<StatsPage />} />
+
 
           </Routes>
         </main>
